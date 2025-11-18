@@ -1,0 +1,37 @@
+ProyectoCognos.
+├───app
+│   ├───Config                          <--- Archivos principales (conexion a bd)
+│   ├───Controllers                     <--- BaseController (clase principal)
+│   ├───Models                          <--- BaseModel (clase principal)
+│   ├───Router                          <--- Manejador de rutas
+│   └───Views                           <--- Vistas estaticas
+├───Modules
+│   ├───FormularioKostick
+│   │   ├───Controllers
+│   │   ├───Models
+│   │   ├───Resources
+│   │   │   ├───css
+│   │   │   │   └───fontawesome
+│   │   │   │       ├───css
+│   │   │   │       └───webfonts
+│   │   │   └───js
+│   │   └───Views
+│   ├───FormularioPersona
+│   │   ├───Controllers
+│   │   ├───Models
+│   │   ├───Resources
+│   │   │   ├───css
+│   │   │   │   └───fontawesome
+│   │   │   │       ├───css
+│   │   │   │       └───webfonts
+│   │   │   └───js
+│   │   └───Views
+│   └───FormularioZavick
+│       ├───Controllers
+│       ├───Models
+│       ├───Resources
+│       │   ├───css
+│       │   └───js
+│       └───Views
+└───vendor
+    └───composer

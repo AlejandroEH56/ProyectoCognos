@@ -1,0 +1,76 @@
+<?php
+
+function crearModulo(string $nombreCarpeta): void
+{
+    $estructura = ['Controllers', 'Models', 'Resources', 'Views'];
+    $rutaBase = __DIR__ . DIRECTORY_SEPARATOR . 'Modules'; // Directorio de Modules
+    $rutaPrincipal = $rutaBase . DIRECTORY_SEPARATOR . $nombreCarpeta;
+
+    if (!is_dir($rutaPrincipal)) {
+        mkdir($rutaPrincipal, 0755, true);
+        echo "Carpeta principal creada: $rutaPrincipal\n";
+    }
+
+    foreach ($estructura as $subcarpeta) {
+        $rutaSubcarpeta = $rutaPrincipal . DIRECTORY_SEPARATOR . $subcarpeta;
+        if (!is_dir($rutaSubcarpeta)) {
+            mkdir($rutaSubcarpeta, 0755, true);
+            echo "Subcarpeta creada: $rutaSubcarpeta\n";
+        }
+
+        // Crear archivo Controller con namespace y herencia
+        if ($subcarpeta === 'Controllers') {
+            $archivoController = $rutaSubcarpeta . DIRECTORY_SEPARATOR . $nombreCarpeta . 'Controller.php';
+            if (!file_exists($archivoController)) {
+                $contenidoController = <<<PHP
+                <?php
+
+                namespace Modules\\$nombreCarpeta\\Controllers;
+
+                use App\\Controllers\\BaseController;
+
+                class {$nombreCarpeta}Controller extends BaseController
+                {
+                    // Métodos del controlador
+                }
+                PHP;
+                file_put_contents($archivoController, $contenidoController);
+                echo "Archivo creado: $archivoController\n";
+            }
+        }
+
+        // Crear archivo Model con namespace y herencia
+        if ($subcarpeta === 'Models') {
+            $archivoModel = $rutaSubcarpeta . DIRECTORY_SEPARATOR . $nombreCarpeta . '.php';
+            if (!file_exists($archivoModel)) {
+                $contenidoModel = <<<PHP
+                <?php
+
+                namespace Modules\\$nombreCarpeta\\Models;
+
+                use App\\Models\\BaseModel;
+
+                class {$nombreCarpeta} extends BaseModel
+                {
+                    // Propiedades y métodos del modelo
+                }
+                PHP;
+                file_put_contents($archivoModel, $contenidoModel);
+                echo "Archivo creado: $archivoModel\n";
+            }
+        }
+    }
+
+    echo "Estructura generada dentro de Modules.\n";
+}
+
+// Ejecutar desde CLI
+if (php_sapi_name() === 'cli') {
+    if ($argc !== 2) {
+        echo "Uso: php nuevo_modulo.php [nombre_carpeta]\n";
+        exit(1);
+    }
+
+    $nombreCarpeta = $argv[1];
+    crearModulo($nombreCarpeta);
+}

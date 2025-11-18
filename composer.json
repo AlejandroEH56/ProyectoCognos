@@ -1,0 +1,19 @@
+{
+  "name": "vendor/cognos",
+  "description": "Proyecto de evaluacion automatizada",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Modules\\": "Modules/"
+    }
+  },
+  "authors": [
+    {
+      "name": "Alejandro Estudiilo"
+    }
+  ],
+  "minimum-stability": "dev",
+  "require": {}
+}

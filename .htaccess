@@ -1,0 +1,18 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Directorio base del proyecto (ajusta si no está en raíz del dominio)
+    RewriteBase /
+
+    # Si el archivo o directorio solicitado existe, no redirigir
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Redirigir todo lo demás a index.php, manteniendo la query string
+    RewriteRule ^(.*)$ index.php [QSA,L]
+</IfModule>
+
+# Seguridad: evitar acceso directo a archivos sensibles
+<FilesMatch "(\.htaccess|\.env|composer\.json|composer\.lock|package\.json|yarn\.lock|phpunit\.xml)$">
+    Require all denied
+</FilesMatch>
