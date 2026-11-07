@@ -2,136 +2,125 @@
 
 namespace Modules\FormularioZavick\Models;
 
-use App\Models\BaseModel;
+use App\Models\CuestionarioModel;
 
-class DetPreguntaModel extends BaseModel
+class DetPreguntaModel extends CuestionarioModel
 {
-    protected string $table = 'db_cognos.det_pregunta';
+    protected string $table = 'det_pregunta';
     protected string $primaryKey = 'id_detpregunta';
     protected array $fillable = ['id_detpregunta', 'respuesta', 'id_pregunta', 'valor'];
 
-    /**
-     * Devuelve las Preguntas y respuestas del Test 3 (Zavic)
-     * @return array
-     */
     public function getEvalTest3(): array
     {
-        $result = $this->db->query(
-            "SELECT p.id_pregunta, p.pregunta, 
-                    GROUP_CONCAT(dp.respuesta SEPARATOR '/') AS opciones, 
-                    GROUP_CONCAT(dp.valor SEPARATOR '/') AS valores, 
-                    GROUP_CONCAT(dp.id_detpregunta SEPARATOR '/') AS identificadores
-                    FROM db_cognos.pregunta AS p 
-                    JOIN db_cognos.det_pregunta AS dp ON dp.id_pregunta = p.id_pregunta
-                    JOIN db_cognos.test AS t ON p.id_test = t.id_test
-                    WHERE t.nombre = 'Zavick'
-                    GROUP BY p.id_pregunta, p.pregunta;"
-        )->fetch_all(MYSQLI_ASSOC);
-
-        return $result;
+        $preguntas = [];
+        foreach ($this->getOpciones('Zavick') as $row) {
+            $id = $row['id_pregunta'];
+            if (!isset($preguntas[$id])) {
+                $preguntas[$id] = ['id_pregunta' => $id, 'pregunta' => $row['pregunta'], 'opciones' => []];
+            }
+            if ($row['id_detpregunta'] !== null) {
+                $preguntas[$id]['opciones'][] = [
+                    'idRes' => $row['id_detpregunta'], 'campo' => $row['respuesta'], 'valor' => $row['valor']
+                ];
+            }
+        }
+        return array_values($preguntas);
     }
 
-    /**
-     * Devuelve el total de det preguntas
-     * @return array|array{total: int|bool|null}
-     */
     public function getRespuestaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM db_cognos.det_pregunta");
-        $count = $result ? $result->fetch_assoc() : ['total' => 0];
-
-        return $count;
+        return $this->queryPrepared('SELECT COUNT(*) AS total FROM det_pregunta')[0];
     }
 
+    private function lockQuestion(string $id): array
+    {
+        $test = $this->getTest('Zavick', true);
+        $rows = $this->queryPrepared(
+            'SELECT id_pregunta FROM pregunta WHERE id_pregunta = ? AND id_test = ? FOR UPDATE',
+            [$id, $test['id_test']]
+        );
+        if (!$rows) {
+            throw new \InvalidArgumentException('La pregunta no pertenece al test Zavick.');
+        }
+        return array_column($this->queryPrepared(
+            'SELECT id_detpregunta FROM det_pregunta WHERE id_pregunta = ? ORDER BY id_detpregunta FOR UPDATE', [$id]
+        ), 'id_detpregunta');
+    }
 
-    /**
-     * Actualiza la pregunta y sus respuestas en la base de datos.
-     * Solo realiza UPDATE; no inserta nuevos registros.
-     * @param int $id ID de la pregunta (id_pregunta).
-     * @param string $descripcion Descripción de la pregunta (campo 'pregunta').
-     * @param array $respuestas Array de respuestas: [[id_detpregunta, respuesta, valor], ...].
-     * @throws \Exception Si ocurre un error en la actualización.
-     * @return bool Retorna true si se guardaron corectamente
-     */
+    public function createQuestion(array $pregunta, array $respuestas): void
+    {
+        $this->transaction(function () use ($pregunta, $respuestas) {
+            $test = $this->getTest('Zavick', true);
+            $pregunta['id_test'] = $test['id_test'];
+            if (!(new PreguntaModel())->createPregunta($pregunta)) {
+                throw new \RuntimeException('No se pudo crear la pregunta.');
+            }
+            $this->createDetPreguntas($pregunta['id_pregunta'], $respuestas);
+        });
+    }
+
     public function updatePregunta($id, $descripcion, $respuestas): bool
     {
-        try {
-            // Iniciar transacción para atomicidad
-            $this->db->begin_transaction();
-            // Actualizar la pregunta en tabla 'pregunta'
-            $result = $this->executePrepared("UPDATE pregunta SET pregunta = ? WHERE id_pregunta = ?", [$descripcion, $id]);
-
-            if ($result == 0) {
-                throw new \Exception("No se encontró la pregunta con ID: $id");
+        return $this->transaction(function () use ($id, $descripcion, $respuestas) {
+            $existing = $this->lockQuestion($id);
+            $ids = array_column($respuestas, 0);
+            if (count($ids) !== 4 || count(array_unique($ids)) !== 4 || count($existing) !== 4
+                || array_diff($existing, $ids)) {
+                throw new \InvalidArgumentException('Las cuatro opciones deben pertenecer a la pregunta indicada.');
             }
-            // Actualizar cada respuesta en tabla 'det_pregunta'
+            $this->executePrepared('UPDATE pregunta SET pregunta = ? WHERE id_pregunta = ?', [$descripcion, $id]);
             foreach ($respuestas as $respuesta) {
-                $result = $this->executePrepared("UPDATE det_pregunta SET respuesta = ?, valor = ? WHERE id_detpregunta = ?", [$respuesta[1], $respuesta[2], $respuesta[0]]);
-
-                if ($result == 0) {
-                    throw new \Exception("No se encontró la respuesta con ID: {$respuesta[0]}");
-                }
+                $this->executePrepared(
+                    'UPDATE det_pregunta SET respuesta = ?, valor = ? WHERE id_detpregunta = ? AND id_pregunta = ?',
+                    [$respuesta[1], $respuesta[2], $respuesta[0], $id]
+                );
             }
-            // Confirmar transacción
-            $this->db->commit();
             return true;
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw new \Exception("Error al actualizar: " . $e->getMessage());
-        }
+        });
     }
 
-    /**
-     * Guarda una nueva pregunta zavick
-     * @param string $id ID Pregunta
-     * @param array $respuestas Arreglo con las respuestas de la pregunta
-     * @return bool Devuelve true en caso exito
-     * @throws \Exception
-     */
     public function createDetPreguntas(string $id, array $respuestas): bool
     {
-        try {
-            // Iniciar transacción
-            $this->db->begin_transaction();
-            // Para cada respuesta, crear/insertar
+        return $this->transaction(function () use ($id, $respuestas) {
+            if (count($respuestas) !== 4) {
+                throw new \InvalidArgumentException('La pregunta debe tener cuatro opciones.');
+            }
             foreach ($respuestas as $respuesta) {
-                $result = $this->create(['id_detpregunta' => $respuesta[0], 'respuesta' => $respuesta[1], 'id_pregunta' => $id, 'valor' => $respuesta[2]]);
-                if (!$result) {
-                    throw new \Exception("No se insertaron los datos correctamente.");
+                if (!$this->create([
+                    'id_detpregunta' => $respuesta[0], 'respuesta' => $respuesta[1],
+                    'id_pregunta' => $id, 'valor' => $respuesta[2]
+                ])) {
+                    throw new \RuntimeException('No se pudo guardar una de las opciones.');
                 }
             }
-            $this->db->commit();
-            return true;  // Éxito
-        } catch (\Exception $e) {
-            // Revertir en caso de error
-            $this->db->rollBack();
-            throw new \Exception("Error al guardar: " . $e->getMessage());
-        }
+            return true;
+        });
     }
 
-    /**
-     * Elimina un grupo de preguntas (zavick)
-     * @param array $respuestas Arreglo con IDs de las respuestas
-     * @return bool Devuelve true en caso exito
-     * @throws \Exception
-     */
     public function deleteDetPreguntas(array $respuestas): bool
     {
-        try {
-            $this->db->begin_transaction();
-            // Para cada respuesta, eliminar
-            foreach ($respuestas as $respuesta) {
-                $result = $this->delete($respuesta);
-                if (!$result) {
-                    throw new \Exception("No se elimino la respuesta correctamente: {$respuesta}");
+        return $this->transaction(function () use ($respuestas) {
+            foreach ($respuestas as $id) {
+                if (!$this->delete($id)) {
+                    throw new \InvalidArgumentException('No se encontró una de las opciones para eliminar.');
                 }
             }
-            $this->db->commit();
-            return true; // Éxito
-        } catch (\Exception $e) {
-            // Revertir en caso de error
-            $this->db->rollBack();
-            throw new \Exception("Error: " . $e->getMessage());
-        }
+            return true;
+        });
+    }
+
+    public function deleteQuestion(string $id, array $ids = []): void
+    {
+        $this->transaction(function () use ($id, $ids) {
+            $existing = $this->lockQuestion($id);
+            if ($ids && (count($ids) !== count($existing) || array_diff($ids, $existing)
+                || count(array_unique($ids)) !== count($ids))) {
+                throw new \InvalidArgumentException('Las opciones para eliminar no coinciden con la pregunta.');
+            }
+            $this->deleteDetPreguntas($existing);
+            if (!(new PreguntaModel())->deletePregunta($id)) {
+                throw new \RuntimeException('No se pudo eliminar la pregunta.');
+            }
+        });
     }
 }

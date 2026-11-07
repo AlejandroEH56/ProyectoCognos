@@ -1,9 +1,13 @@
 <?php
 
-// Configuración de la base de datos
+use App\Config\Environment;
+
+$env = new Environment();
+
 return [
-    'host' => 'localhost',
-    'username' => 'root',
-    'password' => 'mybase056',
-    'database' => 'db_cognos',
+    'host' => $env->get('DB_HOST'),
+    'port' => $env->get('DB_PORT', 3306),
+    'username' => $env->get('DB_USERNAME'),
+    'password' => $env->get('DB_PASSWORD'),
+    'database' => $env->get('DB_DATABASE'),
 ];

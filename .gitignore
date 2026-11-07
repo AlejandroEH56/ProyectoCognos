@@ -1,0 +1,25 @@
+# Dependencias y herramientas de Composer
+/vendor/
+/auth.json
+/composer.phar
+
+# Configuración local y credenciales
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+
+# Archivos temporales y respaldos
+*.log
+*.bak
+*.tmp
+/.tmp*/
+
+# Resultados locales y exportaciones
+/artifacts/
+/docs/
+/Database/
+/tests/

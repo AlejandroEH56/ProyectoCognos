@@ -6,7 +6,7 @@ use App\Models\BaseModel;
 
 class PersonaModel extends BaseModel
 {
-    protected string $table = 'db_cognos.persona';
+    protected string $table = 'persona';
     protected string $primaryKey = 'id_persona';
     protected array $fillable = ['id_persona', 'nombre', 'apellido', 'curp', 'rfc', 'nivel_academico', 'perfil_profesional', 'id_perfil', 'status'];
 
@@ -17,7 +17,7 @@ class PersonaModel extends BaseModel
     public function getPersonas(): array
     {
         $result = $this->queryPrepared(
-            "SELECT id_persona AS ID, nombre, apellido, curp, rfc, nivel_academico, perfil_profesional, id_perfil FROM db_cognos.persona WHERE persona.status = 1"
+            "SELECT id_persona AS ID, nombre, apellido, curp, rfc, nivel_academico, perfil_profesional, id_perfil FROM persona WHERE persona.status = 1"
         );
 
         return $result;
@@ -47,7 +47,7 @@ class PersonaModel extends BaseModel
             $personaInfo['status'],
         ];
 
-        $sql = "INSERT INTO db_cognos.persona (id_persona, nombre, apellido, curp, rfc, nivel_academico, perfil_profesional, id_perfil, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO persona (id_persona, nombre, apellido, curp, rfc, nivel_academico, perfil_profesional, id_perfil, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $result = $this->executePrepared($sql, $data);
 
         if (!($result > 0)) {
@@ -63,7 +63,7 @@ class PersonaModel extends BaseModel
      */
     public function getPersonaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM db_cognos.persona;");
+        $result = $this->db->query("SELECT COUNT(*) AS total FROM persona;");
         $count = $result ? $result->fetch_assoc() : ['total' => 0];
 
         return $count;

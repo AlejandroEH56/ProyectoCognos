@@ -1,14 +1,22 @@
+<?php
+
+/**
+ * Datos recibidos mediante BaseController::renderModule().
+ * @var string $error
+ * @var string $mensaje
+ */
+?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <title>Creacion Persona</title>
-    <link href="Modules/FormularioPersona/Resources/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/Modules/FormularioPersona/Resources/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <?php include 'App/Views/header.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/header.php'; ?>
 
     <div class="container mt-5 col-10">
         <div class="card">
@@ -30,13 +38,15 @@
                                     <strong><?php echo addslashes($mensaje); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
-                            <?php unset($_SESSION['mensaje']); endif; ?>
+                            <?php unset($_SESSION['mensaje']);
+                            endif; ?>
                             <?php if ($error): ?>
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                     <strong><?php echo addslashes($error); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
-                            <?php unset($_SESSION['error']); endif; ?>
+                            <?php unset($_SESSION['error']);
+                            endif; ?>
                             <form id="evaluacionForm" action="/create-user" method="POST">
                                 <!-- Form Row-->
                                 <div class="row gx-3">
@@ -106,10 +116,10 @@
         </div>
     </div>
 
-    <?php include 'App/Views/footer.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/footer.php'; ?>
 
-    <script src="Modules/FormularioPersona/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
-    <script src="Modules/FormularioPersona/Resources/js/formCheck.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioPersona/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioPersona/Resources/js/formCheck.js" type="text/javascript"></script>
 
 </body>
 

@@ -1,15 +1,24 @@
+<?php
+
+/**
+ * Datos recibidos mediante BaseController::renderModule().
+ * @var string $error
+ * @var string $mensaje
+ * @var \Modules\FormularioKostick\Controllers\KostickTest $rendered
+ */
+?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <title>Formulario de Evaluación</title>
-    <link href="Modules/FormularioKostick/Resources/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/Modules/FormularioKostick/Resources/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 </head>
 
 <body>
-    <?php include "App/Views/header.php"; ?>
+    <?php include __DIR__ . '/../../../app/Views/header.php'; ?>
 
     <div class="container mt-5 col-10">
         <div class="card">
@@ -30,14 +39,14 @@
                             <!-- Mensajes de retroalimentacion -->
                             <?php if ($mensaje): ?>
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                    <strong><?php echo addslashes($mensaje); ?></strong>
+                                    <strong><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             <?php unset($_SESSION['mensaje']);
                             endif; ?>
                             <?php if ($error): ?>
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <strong><?php echo addslashes($error); ?></strong>
+                                    <strong><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             <?php unset($_SESSION['error']);
@@ -49,7 +58,7 @@
                                 </section>
                                 <div class="d-flex justify-content-end">
                                     <!-- <button type="reset" class="btn btn-light">Cancelar</button> -->
-                                    <button type="submit" class="btn btn-primary" id="btnAddNewData" data-bs-toggle="modal" data-bs-target="#addNewDataModal">Nueva Pregunta</button>
+                                    <button type="submit" class="btn btn-primary" id="btnAddNewDataBottom" data-bs-toggle="modal" data-bs-target="#addNewDataModal">Nueva Pregunta</button>
                                 </div>
                             </div>
                         </div>
@@ -81,11 +90,9 @@
                             <!-- Form Group (apellidos)-->
                             <div class="col-md-3 mb-3">
                                 <label class="small mb-1" for="valor1">Valor</label>
-                                <input class="form-control" id="valor1" type="text"
-                                    inputmode="numeric" pattern="\d*" maxlength="10"
+                                <input class="form-control" id="valor1" type="number" step="1" min="-2147483648" max="2147483647"
                                     placeholder="Valor de la respuesta" name="valor1" required
-                                    title="Ingrese solo números"
-                                    oninput="this.value = this.value.replace(/\D/g, '');" />
+                                    title="Ingrese solo números" />
                             </div>
                             <!-- Form Group (nombre)-->
                             <div class="col-md-9 mb-3">
@@ -97,11 +104,9 @@
                             <!-- Form Group (apellidos)-->
                             <div class="col-md-3 mb-3">
                                 <label class="small mb-1" for="valor2">Valor</label>
-                                <input class="form-control" id="valor2" type="text"
-                                    inputmode="numeric" pattern="\d*" maxlength="10"
+                                <input class="form-control" id="valor2" type="number" step="1" min="-2147483648" max="2147483647"
                                     placeholder="Valor de la respuesta" name="valor2" required
-                                    title="Ingrese solo números"
-                                    oninput="this.value = this.value.replace(/\D/g, '');" />
+                                    title="Ingrese solo números" />
                             </div>
                         </div>
                         <div class="modal-footer d-flex justify-content-between">
@@ -136,10 +141,10 @@
         </div>
     </div>
 
-    <?php include 'App/Views/footer.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/footer.php'; ?>
 
-    <script src="Modules/FormularioKostick/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
-    <script src="Modules/FormularioKostick/Resources/js/kostickModals.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioKostick/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioKostick/Resources/js/kostickModals.js" type="text/javascript"></script>
 
 </body>
 

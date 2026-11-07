@@ -1,12 +1,13 @@
-<!-- Pregunta de opciones agrupadas -->
-<!-- Input:
-    var $descripcion: Incluye la pregunta por responer
--->
 <?php
+
+/**
+ * Datos recibidos mediante BaseController::renderModule().
+ * @var array $datosTest
+ */
+
+/* -- Pregunta de opciones agrupadas -- */
+
 if (!empty($datosTest)):
-    // echo '<pre>';
-    // print_r($datosTest);  // para pruebas
-    // echo '</pre>';
     $contPreguntas = 1;
     foreach ($datosTest as $test): ?>
         <div class="mb-4">
@@ -16,19 +17,19 @@ if (!empty($datosTest)):
                         <div class="col-12">
                             <input type="hidden" value="<?= htmlspecialchars($test['id_pregunta']) ?>" name="id_pregunta">
                             <label class="form-label" for="des_pregunta<?= $contPreguntas ?>">Descripcion pregunta No. <?= htmlspecialchars($contPreguntas) ?></label>
-                            <input class="form-control" value="<?= htmlspecialchars($test['pregunta']) ?>" name="des_pregunta" id="des_pregunta<?= $contPreguntas ?>">
+                            <input class="form-control" value="<?= htmlspecialchars((string)($test['pregunta'] ?? '')) ?>" name="des_pregunta" id="des_pregunta<?= $contPreguntas ?>" maxlength="255" required>
                         </div>
                         <?php foreach ($test['opciones'] as $id => $row): ?>
                             <div class="col-9">
                                 <input type="hidden" value="<?= htmlspecialchars($row['idRes']) ?>" name="id_respuesta<?= $id + 1 ?>">
-                                <label class="ms-2 pt-2" for="des_respuesta<?= $id + 1 ?>">Descripcion respuesta no. <?= htmlspecialchars($id + 1) ?></label>
-                                <input class="form-control" type="text" value="<?= htmlspecialchars($row['campo']) ?>"
-                                    name="des_respuesta<?= $id + 1 ?>" id="des_respuesta<?= $id + 1 ?>" required>
+                                <label class="ms-2 pt-2" for="preg<?= $contPreguntas ?>_des_respuesta<?= $id + 1 ?>">Descripcion respuesta no. <?= htmlspecialchars($id + 1) ?></label>
+                                <input class="form-control" type="text" value="<?= htmlspecialchars((string)($row['campo'] ?? '')) ?>"
+                                    name="des_respuesta<?= $id + 1 ?>" id="preg<?= $contPreguntas ?>_des_respuesta<?= $id + 1 ?>" required>
                             </div>
                             <div class="col-3">
-                                <label class="ms-2 pt-2" for="des_valor<?= $id + 1 ?>">Valor</label>
-                                <input class="form-control" type="text" value="<?= htmlspecialchars($row['valor']) ?>"
-                                    name="des_valor<?= $id + 1 ?>" id="des_valor<?= $id + 1 ?>" required>
+                                <label class="ms-2 pt-2" for="preg<?= $contPreguntas ?>_des_valor<?= $id + 1 ?>">Valor</label>
+                                <input class="form-control" type="number" step="1" min="-2147483648" max="2147483647" value="<?= htmlspecialchars((string)($row['valor'] ?? '')) ?>"
+                                    name="des_valor<?= $id + 1 ?>" id="preg<?= $contPreguntas ?>_des_valor<?= $id + 1 ?>" required>
                             </div>
                         <?php endforeach; ?>
                     </div>

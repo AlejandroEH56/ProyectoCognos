@@ -1,3 +1,12 @@
+<?php
+
+/**
+ * Datos recibidos mediante BaseController::renderModule().
+ * @var string $error
+ * @var string $mensaje
+ * @var array $usuarios
+ */
+?>
 <!DOCTYPE html>
 <html lang="es">
 
@@ -7,13 +16,13 @@
     <title>Lista de personas</title>
     <!-- Hojas de estilo -->
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@latest/dist/style.css" rel="stylesheet" type="text/css">
-    <link href="Modules/FormularioPersona/Resources/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="/Modules/FormularioPersona/Resources/css/bootstrap.min.css" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
 </head>
 
 <body>
-    <?php include 'App/Views/header.php'; ?>
-    <?php include 'modals_persona.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/header.php'; ?>
+    <?php include __DIR__ . '/modals_persona.php'; ?>
 
     <div class="container mt-5 col-10">
         <div class="card">
@@ -95,9 +104,9 @@
         </div>
     </div>
 
-    <?php include 'App/Views/footer.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/footer.php'; ?>
 
-    <script src="Modules/FormularioPersona/Resources/js/personaModals.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioPersona/Resources/js/personaModals.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@latest" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
 

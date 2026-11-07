@@ -21,6 +21,8 @@ class Rutes
 
             ],
             'POST' => [
+                '/guardar-evaluacion-kostick' => [KostickTest::class, 'guardarEvaluacion'],
+                '/guardar-evaluacion-zavick' => [ZavickTest::class, 'guardarEvaluacion'],
                 '/create-user'      => [Persona::class, 'create'],
                 '/delete-user'      => [Persona::class, 'delete'],
                 '/update-user'      => [Persona::class, 'update'],

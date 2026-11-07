@@ -3,7 +3,7 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header bg-primary">
-                <h5 class="modal-title text-light" id="newModalZavickLabel">Crear Persona</h5>
+                <h5 class="modal-title text-light" id="newModalZavickLabel">Nueva Pregunta</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
@@ -28,7 +28,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label for="des_valor1" class="small mb-1">Valor respueta 1</label>
-                            <input type="number" class="form-control" id="des_valor1" name="des_valor1" required
+                            <input type="number" step="1" min="-2147483648" max="2147483647" class="form-control" id="des_valor1" name="des_valor1" required
                                 placeholder="Ingresa el valor"
                                 title="Debe ser un valor númerico">
                         </div>
@@ -43,7 +43,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label for="des_valor2" class="small mb-1">Valor respueta 2</label>
-                            <input type="number" class="form-control" id="des_valor2" name="des_valor2" required
+                            <input type="number" step="1" min="-2147483648" max="2147483647" class="form-control" id="des_valor2" name="des_valor2" required
                                 placeholder="Ingresa el valor"
                                 title="Debe ser un valor númerico">
                         </div>
@@ -58,7 +58,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label for="des_valor3" class="small mb-1">Valor respueta 3</label>
-                            <input type="number" class="form-control" id="des_valor3" name="des_valor3" required
+                            <input type="number" step="1" min="-2147483648" max="2147483647" class="form-control" id="des_valor3" name="des_valor3" required
                                 placeholder="Ingresa el valor"
                                 title="Debe ser un valor númerico">
                         </div>
@@ -73,7 +73,7 @@
                         </div>
                         <div class="col-md-3 mb-3">
                             <label for="des_valor4" class="small mb-1">Valor respueta 4</label>
-                            <input type="number" class="form-control" id="des_valor4" name="des_valor4" required
+                            <input type="number" step="1" min="-2147483648" max="2147483647" class="form-control" id="des_valor4" name="des_valor4" required
                                 placeholder="Ingresa el valor"
                                 title="Debe ser un valor númerico">
                         </div>

@@ -14,6 +14,7 @@ class BaseModel
     protected array $fillable = [];   // Campos permitidos para insert/update (seguridad)
     protected array $timestamps = []; // Campos de timestamp si aplica (e.g., ['created_at', 'updated_at'])
     protected static ?mysqli $instance = null;
+    private static int $transactionDepth = 0;
     protected $db;
 
     public function __construct()
@@ -23,12 +24,43 @@ class BaseModel
 
     protected function connect(): mysqli
     {
-        $database = new Database();
-        $connection = $database->getConnection();
-        if ($connection === null || $connection->connect_error) {
-            throw new Exception('Error de conexión: ' . $connection->connect_error);
+        return $this->db();
+    }
+
+    public static function newId(string $prefix): string
+    {
+        return $prefix . '-' . bin2hex(random_bytes(16));
+    }
+
+    /** Las operaciones anidadas comparten la conexion y usan savepoints. */
+    public function transaction(callable $operation): mixed
+    {
+        $level = self::$transactionDepth;
+        $savepoint = 'cognos_' . $level;
+        if ($level === 0) {
+            $this->db->begin_transaction();
+        } else {
+            $this->db->query('SAVEPOINT ' . $savepoint);
         }
-        return $connection;
+        self::$transactionDepth++;
+        try {
+            $result = $operation();
+            if ($level === 0) {
+                $this->db->commit();
+            } else {
+                $this->db->query('RELEASE SAVEPOINT ' . $savepoint);
+            }
+            return $result;
+        } catch (\Throwable $error) {
+            if ($level === 0) {
+                $this->db->rollback();
+            } else {
+                $this->db->query('ROLLBACK TO SAVEPOINT ' . $savepoint);
+            }
+            throw $error;
+        } finally {
+            self::$transactionDepth--;
+        }
     }
 
     /**
@@ -79,24 +111,16 @@ class BaseModel
     {
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            $conn->close();
-            throw new Exception('Error al preparar la consulta: ' . $conn->error);
-        }
-        if (!empty($params)) {
-            $types = $this->getParamTypes($params);
-            $stmt->bind_param($types, ...$params);
-        }
-        if (!$stmt->execute()) {
+        if (!$stmt) throw new Exception('Error al preparar la consulta: ' . $conn->error);
+        try {
+            if ($params) {
+                $stmt->bind_param($this->getParamTypes($params), ...$params);
+            }
+            if (!$stmt->execute()) throw new Exception('Error al ejecutar la consulta: ' . $stmt->error);
+            return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        } finally {
             $stmt->close();
-            $conn->close();
-            throw new Exception('Error al ejecutar la consulta: ' . $stmt->error);
         }
-        $result = $stmt->get_result();
-        $data = $result->fetch_all(MYSQLI_ASSOC);
-        $stmt->close();
-        $conn->close();
-        return $data;
     }
 
 
@@ -110,23 +134,16 @@ class BaseModel
     {
         $conn = $this->connect();
         $stmt = $conn->prepare($sql);
-        if (!$stmt) {
-            $conn->close();
-            throw new Exception('Error al preparar la consulta: ' . $conn->error);
-        }
-        if (!empty($params)) {
-            $types = $this->getParamTypes($params);
-            $stmt->bind_param($types, ...$params);
-        }
-        if (!$stmt->execute()) {
+        if (!$stmt) throw new Exception('Error al preparar la consulta: ' . $conn->error);
+        try {
+            if ($params) {
+                $stmt->bind_param($this->getParamTypes($params), ...$params);
+            }
+            if (!$stmt->execute()) throw new Exception('Error al ejecutar la consulta: ' . $stmt->error);
+            return $stmt->affected_rows;
+        } finally {
             $stmt->close();
-            $conn->close();
-            throw new Exception('Error al ejecutar la consulta: ' . $stmt->error);
         }
-        $affectedRows = $stmt->affected_rows;
-        $stmt->close();
-        $conn->close();
-        return $affectedRows;
     }
 
     /**
@@ -139,6 +156,7 @@ class BaseModel
             if (is_int($param)) $types .= 'i';
             elseif (is_float($param)) $types .= 'd';
             elseif (is_string($param)) $types .= 's';
+            elseif ($param === null) $types .= 's';
             else $types .= 'b';
         }
         return $types;

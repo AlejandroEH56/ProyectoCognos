@@ -2,11 +2,11 @@
 
 namespace Modules\FormularioKostick\Models;
 
-use App\Models\BaseModel;
+use App\Models\CuestionarioModel;
 
-class DetPreguntaModel extends BaseModel
+class DetPreguntaModel extends CuestionarioModel
 {
-    protected string $table = 'db_cognos.det_pregunta';
+    protected string $table = 'det_pregunta';
     protected string $primaryKey = 'id_detpregunta';
     protected array $fillable = ['id_detpregunta', 'respuesta', 'id_pregunta', 'valor'];
 
@@ -16,20 +16,12 @@ class DetPreguntaModel extends BaseModel
      */
     public function getEvalTest2(): array
     {
-        $result = $this->db->query(
-            "SELECT id_detpregunta, det_pregunta.respuesta, det_pregunta.valor
-	                FROM db_cognos.det_pregunta
-                    JOIN db_cognos.pregunta ON pregunta.id_pregunta = det_pregunta.id_pregunta
-                    JOIN db_cognos.test ON pregunta.id_test = test.id_test
-                    WHERE test.nombre = 'Kostick';"
-        )->fetch_all(MYSQLI_ASSOC);
-
-        return $result;
+        return array_values(array_filter($this->getOpciones('Kostick'), fn($row) => $row['id_detpregunta'] !== null));
     }
 
     /**
      * Crea una pregunta
-     * @param array $detPregunta Datos de la Pregunta/Respuesta
+     * @param array $dataPregunta Datos de la Pregunta/Respuesta
      * @return bool true si se insertan los datos correctamente
      */
     public function createDetPregunta(array $dataPregunta): bool
@@ -75,7 +67,7 @@ class DetPreguntaModel extends BaseModel
      */
     public function getRespuestaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM db_cognos.det_pregunta");
+        $result = $this->db->query("SELECT COUNT(*) AS total FROM det_pregunta");
         $count = $result ? $result->fetch_assoc() : ['total' => 0];
 
         return $count;
@@ -87,14 +79,75 @@ class DetPreguntaModel extends BaseModel
      */
     public function getIDPreguntaKostick(): array
     {
-        $result = $this->db->query(
-            "SELECT det_pregunta.id_pregunta AS ID
-	                FROM db_cognos.det_pregunta
-                    JOIN db_cognos.pregunta ON pregunta.id_pregunta = det_pregunta.id_pregunta 
-                    JOIN db_cognos.test ON pregunta.id_test = test.id_test
-                    WHERE test.nombre = 'kostick' limit 1"
+        $rows = $this->queryPrepared(
+            'SELECT p.id_pregunta AS ID FROM pregunta p JOIN test t ON t.id_test = p.id_test
+             WHERE t.id_test = (SELECT id_test FROM test WHERE nombre = ? ORDER BY id_test LIMIT 1)
+             ORDER BY p.id_pregunta LIMIT 1', ['Kostick']
         );
-        $count = $result ? $result->fetch_assoc() : ['ID' => null];
-        return $count;
+        return $rows[0] ?? ['ID' => null];
+    }
+
+    public function createPair(array $opciones): void
+    {
+        $this->transaction(function () use ($opciones) {
+            if (count($opciones) !== 2) {
+                throw new \InvalidArgumentException('Se requieren dos opciones para crear un par.');
+            }
+            $test = $this->getTest('Kostick', true);
+            $id = $this->getIDPreguntaKostick()['ID'];
+            if ($id === null) {
+                $id = self::newId('preg');
+                $this->executePrepared(
+                    'INSERT INTO pregunta (id_pregunta, pregunta, tipo_respuesta, id_test) VALUES (?, ?, ?, ?)',
+                    [$id, 'Elige la frase que más te describe', 1, $test['id_test']]
+                );
+            }
+            // El prefijo mantiene los pares nuevos juntos, después de los IDs consecutivos anteriores.
+            $pairId = self::newId('dpreg-par');
+            foreach ($opciones as $index => $opcion) {
+                if (!$this->createDetPregunta([
+                    'id_detpregunta' => $pairId . '-' . ($index + 1),
+                    'respuesta' => $opcion['respuesta'], 'valor' => $opcion['valor'], 'id_pregunta' => $id
+                ])) {
+                    throw new \RuntimeException('No se pudo crear el par de opciones.');
+                }
+            }
+        });
+    }
+
+    private function lockPair(array $ids): void
+    {
+        $this->getTest('Kostick', true);
+        $rows = $this->getEvalTest2();
+        for ($i = 0; $i + 1 < count($rows); $i += 2) {
+            $pair = [$rows[$i]['id_detpregunta'], $rows[$i + 1]['id_detpregunta']];
+            if (count($ids) === 2 && count(array_unique($ids)) === 2 && !array_diff($ids, $pair)
+                && $rows[$i]['id_pregunta'] === $rows[$i + 1]['id_pregunta']) {
+                return;
+            }
+        }
+        throw new \InvalidArgumentException('Las opciones no corresponden a un par vigente de Kostick.');
+    }
+
+    public function updatePair(array $ids, array $opciones): void
+    {
+        $this->transaction(function () use ($ids, $opciones) {
+            $this->lockPair($ids);
+            foreach ($ids as $index => $id) {
+                $this->updateDetPregunta($id, $opciones[$index]);
+            }
+        });
+    }
+
+    public function deletePair(array $ids): void
+    {
+        $this->transaction(function () use ($ids) {
+            $this->lockPair($ids);
+            foreach ($ids as $id) {
+                if (!$this->deleteDetPregunta($id)) {
+                    throw new \RuntimeException('No se pudo eliminar el par de opciones.');
+                }
+            }
+        });
     }
 }

@@ -1,14 +1,27 @@
+<?php
+
+/**
+ * Datos recibidos mediante BaseController::renderModule().
+ * @var string $error
+ * @var string $mensaje
+ * @var object $form
+ * @var array $personas
+ * @var array $perfiles
+ * @var array $anteriores
+ * @var string $token
+ */
+?>
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <title>Formulario de Evaluación</title>
-    <link href="Modules/FormularioZavick/Resources/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/Modules/FormularioZavick/Resources/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
-    <?php include "App/Views/header.php"; ?>
+    <?php include __DIR__ . '/../../../app/Views/header.php'; ?>
 
     <div class="container mt-5 col-10">
         <div class="card">
@@ -27,22 +40,23 @@
                             <!-- Mensajes de retroalimentacion -->
                             <?php if ($mensaje): ?>
                                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                    <strong><?php echo addslashes($mensaje); ?></strong>
+                                    <strong><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             <?php unset($_SESSION['mensaje']);
                             endif; ?>
                             <?php if ($error): ?>
                                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <strong><?php echo addslashes($error); ?></strong>
+                                    <strong><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></strong>
                                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                                 </div>
                             <?php unset($_SESSION['error']);
                             endif; ?>
-                            <form id="evaluacionTestZabic">
+                            <form id="evaluacionTestZabic" method="POST" action="/guardar-evaluacion-zavick">
+                                <?php include __DIR__ . '/../../../app/Views/evaluacionContexto.php'; ?>
                                 <!-- Grupo de preguntas -->
                                 <section class="mb-4">
-                                    <?=  $form->formPreguntas(); ?>
+                                    <?= $form->formPreguntas(); ?>
                                 </section>
 
                                 <div class="d-flex justify-content-between">
@@ -57,10 +71,10 @@
         </div>
     </div>
 
-    <?php include 'App/Views/footer.php'; ?>
+    <?php include __DIR__ . '/../../../app/Views/footer.php'; ?>
 
-    <script src="Modules/FormularioZavick/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
-    <script src="Modules/FormularioZavick/Resources/js/formCheck.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioZavick/Resources/js/bootstrap.bundle.min.js" type="text/javascript"></script>
+    <script src="/Modules/FormularioZavick/Resources/js/formCheck.js" type="text/javascript"></script>
 
 </body>
 

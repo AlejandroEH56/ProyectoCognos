@@ -13,6 +13,10 @@ function crearModulo(string $nombreCarpeta): void
 
     foreach ($estructura as $subcarpeta) {
         $rutaSubcarpeta = $rutaPrincipal . DIRECTORY_SEPARATOR . $subcarpeta;
+        if ($subcarpeta === 'Resources') {
+            $rutaSubcarpeta = __DIR__ . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'Modules'
+                . DIRECTORY_SEPARATOR . $nombreCarpeta . DIRECTORY_SEPARATOR . 'Resources';
+        }
         if (!is_dir($rutaSubcarpeta)) {
             mkdir($rutaSubcarpeta, 0755, true);
             echo "Subcarpeta creada: $rutaSubcarpeta\n";
@@ -61,13 +65,13 @@ function crearModulo(string $nombreCarpeta): void
         }
     }
 
-    echo "Estructura generada dentro de Modules.\n";
+    echo "Módulo generado en Modules y recursos en public/Modules.\n";
 }
 
 // Ejecutar desde CLI
 if (php_sapi_name() === 'cli') {
     if ($argc !== 2) {
-        echo "Uso: php nuevo_modulo.php [nombre_carpeta]\n";
+        echo "Uso: php stitch [nombre_carpeta]\n";
         exit(1);
     }
 

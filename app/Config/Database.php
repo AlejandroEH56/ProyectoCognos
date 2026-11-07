@@ -1,6 +1,6 @@
 <?php
 
-namespace App\config;
+namespace App\Config;
 
 use mysqli;
 use Exception;
@@ -11,12 +11,13 @@ class Database
     private $username;
     private $password;
     private $database;
+    private int $port = 3306;
     private ?mysqli $connection = null;
 
 
     public function __construct()
     {
-        $config = require 'ConfigDB.php';
+        $config = require __DIR__ . '/ConfigDB.php';
         if (!is_array($config) || empty($config['host']) || empty($config['database'])) {
             throw new Exception('Configuración de DB inválida o incompleta en ConfigDB.php');
         }
@@ -25,6 +26,7 @@ class Database
         $this->username = $config['username'];
         $this->password = $config['password'];
         $this->database = $config['database'];
+        $this->port = (int)($config['port'] ?? 3306);
 
         $this->connect();
     }
@@ -36,7 +38,7 @@ class Database
      */
     public function connect(): void
     {
-        $this->connection = new mysqli($this->host, $this->username, $this->password, $this->database);
+        $this->connection = new mysqli($this->host, $this->username, $this->password, $this->database, $this->port);
         if ($this->connection->connect_error) {
             $error = "Conexión fallida: " . $this->connection->connect_error;
             error_log($error); // Log para depuración

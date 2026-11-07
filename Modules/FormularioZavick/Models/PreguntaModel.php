@@ -2,11 +2,11 @@
 
 namespace Modules\FormularioZavick\Models;
 
-use App\Models\BaseModel;
+use App\Models\CuestionarioModel;
 
-class PreguntaModel extends BaseModel
+class PreguntaModel extends CuestionarioModel
 {
-    protected string $table = 'db_cognos.pregunta';
+    protected string $table = 'pregunta';
     protected string $primaryKey = 'id_pregunta';
     protected array $fillable = ['id_pregunta', 'pregunta', 'tipo_respuesta', 'id_test'];
 
@@ -34,8 +34,7 @@ class PreguntaModel extends BaseModel
      */
     public function getIDTest()
     {
-        $result = $this->queryPrepared("SELECT id_test AS ID FROM db_cognos.test WHERE test.nombre = ?;", ['zavick']);
-        return $result[0];
+        return ['ID' => $this->getTest('Zavick')['id_test']];
     }
 
 
@@ -45,7 +44,7 @@ class PreguntaModel extends BaseModel
      */
     public function getPreguntaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM db_cognos.pregunta");
+        $result = $this->db->query("SELECT COUNT(*) AS total FROM pregunta");
         $count = $result ? $result->fetch_assoc() : ['total' => 0];
 
         return $count;
