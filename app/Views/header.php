@@ -13,6 +13,9 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="/perfiles-profesionales">Perfiles profesionales</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="/test-kostick">
                     Test 2
                 </a>

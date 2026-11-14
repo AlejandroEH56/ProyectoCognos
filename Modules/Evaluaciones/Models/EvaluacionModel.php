@@ -1,24 +1,54 @@
 <?php
 
-namespace App\Models;
+namespace Modules\Evaluaciones\Models;
 
+use Modules\PerfilProfesional\Models\PerfilProfesionalModel;
+
+/**
+ * Valida respuestas y guarda aplicaciones con el perfil asociado a cada persona.
+ */
 class EvaluacionModel extends CuestionarioModel
 {
+    /**
+     * Lista las personas activas junto con su perfil, incluso si aún no tienen asignación.
+     *
+     * @return list<array{id_persona: string, nombre: string|null, apellido: string|null, id_perfil: string|null, nombre_perfil: string|null, perfil_status: int|null}> Personas disponibles para la vista.
+     * @throws \Exception Si falla la lectura SQL.
+     */
     public function getPersonas(): array
     {
-        return $this->queryPrepared('SELECT id_persona, nombre, apellido FROM persona WHERE status = 1 ORDER BY nombre, apellido, id_persona');
+        return $this->queryPrepared(
+            'SELECT p.id_persona, p.nombre, p.apellido, p.id_perfil, pp.nombre_perfil, pp.status AS perfil_status
+             FROM persona p LEFT JOIN perfil_profesional pp ON pp.id_perfil = p.id_perfil
+             WHERE p.status = 1 ORDER BY p.nombre, p.apellido, p.id_persona'
+        );
     }
 
-    public function getPerfiles(): array
-    {
-        return $this->queryPrepared('SELECT id_perfil, nombre_perfil FROM perfil_profesional WHERE status = 1 ORDER BY nombre_perfil, id_perfil');
-    }
-
+    /**
+     * Calcula una huella del catálogo ordenado para detectar cambios antes del envío.
+     *
+     * @param string $nombre Nombre del test cuyo catálogo se serializa.
+     * @return string Huella SHA-256 hexadecimal de las preguntas y opciones actuales.
+     * @throws \JsonException Si el catálogo no puede codificarse como JSON.
+     * @throws \Exception Si falla la lectura del catálogo.
+     */
     public function catalogHash(string $nombre): string
     {
         return hash('sha256', json_encode($this->getOpciones($nombre), JSON_THROW_ON_ERROR));
     }
 
+    /**
+     * Valida respuestas completas y resuelve las opciones y valores que se guardarán.
+     *
+     * Kostick recibe una opción por clave pregNNN. Zavick recibe valores 1 a 4 por ID de opción,
+     * sin repetir puntuaciones dentro de una pregunta.
+     *
+     * @param string $nombre Nombre del test que determina las reglas de validación.
+     * @param array<string, mixed> $input Respuestas POST por clave de par o identificador de opción.
+     * @return list<array{id_pregunta: string, pregunta: string|null, id_test: string, id_detpregunta: string, respuesta: string|null, valor: int}> Opciones seleccionadas con puntuación validada.
+     * @throws \InvalidArgumentException Si el catálogo o las respuestas están incompletos o no corresponden.
+     * @throws \Exception Si falla la consulta del catálogo.
+     */
     private function selectedResponses(string $nombre, array $input): array
     {
         $catalog = $this->getOpciones($nombre);
@@ -68,19 +98,35 @@ class EvaluacionModel extends CuestionarioModel
         return $selected;
     }
 
-    public function guardar(string $nombre, string $persona, string $perfil, array $input, string $token, string $catalogHash): string
+    /**
+     * Guarda aplicación, relación con el test y respuestas en una transacción.
+     *
+     * Obtiene el perfil desde la persona y exige que esté activo para una aplicación nueva.
+     * Un reintento idéntico devuelve la aplicación existente y conserva su perfil histórico.
+     *
+     * @param string $nombre Nombre del test que se está evaluando.
+     * @param string $persona ID de una persona activa con perfil asignado.
+     * @param array<string, mixed> $input Respuestas enviadas que deben validarse con el catálogo.
+     * @param string $token Token hexadecimal de 32 caracteres validado por el controlador.
+     * @param string $catalogHash Huella SHA-256 registrada al abrir el formulario.
+     * @return string ID de la aplicación creada o recuperada por un reintento idéntico.
+     * @throws \InvalidArgumentException Si cambió el catálogo, fallan las respuestas o la persona/perfil no es válida.
+     * @throws \Exception Si falla la persistencia, serialización o generación de IDs; revierte la operación.
+     */
+    public function guardar(string $nombre, string $persona, array $input, string $token, string $catalogHash): string
     {
-        return $this->transaction(function () use ($nombre, $persona, $perfil, $input, $token, $catalogHash) {
+        return $this->transaction(function () use ($nombre, $persona, $input, $token, $catalogHash) {
             $test = $this->getTest($nombre, true);
             if (!hash_equals($catalogHash, $this->catalogHash($nombre))) {
                 throw new \InvalidArgumentException('El cuestionario cambió. Revisa las opciones actuales antes de volver a enviarlo.');
             }
             $selected = $this->selectedResponses($nombre, $input);
             $applicationId = 'APL-' . $token;
-            $existing = $this->queryPrepared(
+            $existing = $this->queryOne(
                 'SELECT a.id_persona, a.id_perfil, at.test_id_test FROM aplicacion a
                  JOIN aplicacion_test at ON at.aplicacion_id_aplicacion = a.id_aplicacion
-                 WHERE a.id_aplicacion = ? FOR UPDATE', [$applicationId]
+                 WHERE a.id_aplicacion = ? FOR UPDATE',
+                [$applicationId]
             );
             if ($existing) {
                 $saved = $this->queryPrepared('SELECT id_detpregunta, valor FROM respuesta WHERE id_aplicacion = ?', [$applicationId]);
@@ -88,18 +134,26 @@ class EvaluacionModel extends CuestionarioModel
                 $savedValues = array_column($saved, 'valor', 'id_detpregunta');
                 ksort($expectedValues);
                 ksort($savedValues);
-                if ($existing[0]['id_persona'] !== $persona || $existing[0]['id_perfil'] !== $perfil
-                    || $existing[0]['test_id_test'] !== $test['id_test']
-                    || array_map('intval', $expectedValues) !== array_map('intval', $savedValues)) {
+                if (
+                    $existing['id_persona'] !== $persona
+                    || $existing['test_id_test'] !== $test['id_test']
+                    || array_map('intval', $expectedValues) !== array_map('intval', $savedValues)
+                ) {
                     throw new \InvalidArgumentException('Este envío ya fue guardado con otros datos. Abre una nueva evaluación.');
                 }
                 return $applicationId;
             }
-            if (!$this->queryPrepared('SELECT id_persona FROM persona WHERE id_persona = ? AND status = 1 FOR UPDATE', [$persona])) {
+            $personaActual = $this->queryOne('SELECT id_perfil FROM persona WHERE id_persona = ? AND status = 1 FOR UPDATE', [$persona]);
+            if ($personaActual === null) {
                 throw new \InvalidArgumentException('Selecciona una persona activa.');
             }
-            if (!$this->queryPrepared('SELECT id_perfil FROM perfil_profesional WHERE id_perfil = ? AND status = 1 FOR UPDATE', [$perfil])) {
-                throw new \InvalidArgumentException('Selecciona un perfil activo.');
+            $perfil = $personaActual['id_perfil'];
+            if ($perfil === null || $perfil === '') {
+                throw new \InvalidArgumentException('Asigna un perfil profesional a la persona antes de realizar la evaluación.');
+            }
+            $perfilActual = (new PerfilProfesionalModel())->getPerfil($perfil, true);
+            if ($perfilActual === null || (int)$perfilActual['status'] !== 1) {
+                throw new \InvalidArgumentException('El perfil de la persona está inactivo. Actívalo o asigna otro perfil antes de evaluar.');
             }
             $now = new \DateTimeImmutable('now', new \DateTimeZone('America/Mexico_City'));
             $date = $now->format('Y-m-d');

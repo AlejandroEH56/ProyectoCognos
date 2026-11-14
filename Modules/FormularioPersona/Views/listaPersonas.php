@@ -5,6 +5,7 @@
  * @var string $error
  * @var string $mensaje
  * @var array $usuarios
+ * @var array $perfiles
  */
 ?>
 <!DOCTYPE html>
@@ -42,14 +43,14 @@
                         <!-- Mensajes de retroalimentacion -->
                         <?php if ($mensaje): ?>
                             <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                <strong><?php echo addslashes($mensaje); ?></strong>
+                                <strong><?php echo htmlspecialchars($mensaje, ENT_QUOTES, 'UTF-8'); ?></strong>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         <?php unset($_SESSION['mensaje']);
                         endif; ?>
                         <?php if ($error): ?>
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <strong><?php echo addslashes($error); ?></strong>
+                                <strong><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></strong>
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
                         <?php unset($_SESSION['error']);
@@ -80,7 +81,14 @@
                                                 <td><?= htmlspecialchars($row['curp'] ?? '') ?></td>
                                                 <td><?= htmlspecialchars($row['rfc'] ?? '') ?></td>
                                                 <td><?= htmlspecialchars($row['nivel_academico'] ?? '') ?></td>
-                                                <td><?= htmlspecialchars($row['perfil_profesional'] ?? '') ?></td>
+                                                <td>
+                                                    <?= htmlspecialchars($row['perfil_profesional'] ?? '') ?>
+                                                    <?php if ($row['id_perfil'] === null): ?>
+                                                        <span class="badge text-bg-warning">Pendiente de asignar</span>
+                                                    <?php elseif ((int)$row['perfil_status'] !== 1): ?>
+                                                        <span class="badge text-bg-secondary">Inactivo</span>
+                                                    <?php endif; ?>
+                                                </td>
                                                 <td style="width: 16%;">
                                                     <div class="d-inline-block">
                                                         <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#editModalUser" data-user="<?= htmlspecialchars(json_encode($row, JSON_HEX_APOS | JSON_HEX_QUOT)) ?>">

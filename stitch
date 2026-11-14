@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * Genera el código MVC del módulo y su directorio de recursos públicos.
+ *
+ * @param string $nombreCarpeta Nombre del módulo y de las clases que se generarán.
+ * @return void Crea los archivos ausentes e imprime las rutas generadas en la terminal.
+ */
 function crearModulo(string $nombreCarpeta): void
 {
     $estructura = ['Controllers', 'Models', 'Resources', 'Views'];
@@ -33,9 +39,24 @@ function crearModulo(string $nombreCarpeta): void
 
                 use App\\Controllers\\BaseController;
 
+                /**
+                 * Acciones HTTP del módulo {$nombreCarpeta}.
+                 *
+                 * @see BaseController Sesión, validación y renderizado heredados.
+                 */
                 class {$nombreCarpeta}Controller extends BaseController
                 {
-                    // Métodos del controlador
+                    /**
+                     * Prepara las dependencias del módulo después de iniciar la sesión.
+                     *
+                     * @return void Asigna los modelos o servicios propios del controlador.
+                     */
+                    protected function initialize(): void
+                    {
+                        // Inicializa aquí los modelos propios del módulo.
+                    }
+
+                    // Acciones del controlador.
                 }
                 PHP;
                 file_put_contents($archivoController, $contenidoController);
@@ -54,6 +75,13 @@ function crearModulo(string $nombreCarpeta): void
 
                 use App\\Models\\BaseModel;
 
+                /**
+                 * Persistencia del módulo {$nombreCarpeta}.
+                 *
+                 * Configurar table, primaryKey y fillable antes de utilizar el CRUD.
+                 *
+                 * @see BaseModel Operaciones generales de persistencia heredadas.
+                 */
                 class {$nombreCarpeta} extends BaseModel
                 {
                     // Propiedades y métodos del modelo

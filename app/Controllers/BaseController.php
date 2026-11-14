@@ -2,8 +2,22 @@
 
 namespace App\Controllers;
 
+/**
+ * Servicios HTTP compartidos: sesión, validación de entradas, mensajes y renderizado.
+ */
 class BaseController
 {
+    /**
+     * Lee un campo POST obligatorio y elimina espacios de sus extremos.
+     *
+     * Para el límite 65535 mide bytes; para los demás límites mide caracteres UTF-8.
+     *
+     * @param string $key Nombre del campo en $_POST.
+     * @param string $label Nombre legible utilizado en los errores de validación.
+     * @param int $maxBytes Límite permitido según la regla de longitud descrita.
+     * @return string Texto validado y recortado.
+     * @throws \InvalidArgumentException Si falta el campo, no es texto o supera el límite.
+     */
     protected function postString(string $key, string $label, int $maxBytes = 255): string
     {
         $value = $_POST[$key] ?? null;
@@ -17,6 +31,14 @@ class BaseController
         return trim($value);
     }
 
+    /**
+     * Lee un campo POST y valida el rango de un entero INT de MySQL.
+     *
+     * @param string $key Nombre del campo en $_POST.
+     * @param string $label Nombre legible del campo para los mensajes.
+     * @return int Entero entre -2147483648 y 2147483647, incluido cero.
+     * @throws \InvalidArgumentException Si el campo está ausente o no contiene un entero válido.
+     */
     protected function postInteger(string $key, string $label): int
     {
         $value = $this->postString($key, $label);
@@ -27,6 +49,14 @@ class BaseController
         return $integer;
     }
 
+    /**
+     * Guarda un mensaje en sesión y finaliza con una redirección HTTP 303.
+     *
+     * @param string $route Ruta de destino de la cabecera Location.
+     * @param string $message Mensaje que leerá la vista después de redirigir.
+     * @param bool $error Si es true utiliza la clave de sesión error; en otro caso, mensaje.
+     * @return never Envía la redirección y termina la ejecución.
+     */
     protected function redirectMessage(string $route, string $message, bool $error = false): void
     {
         unset($_SESSION[$error ? 'mensaje' : 'error']);
@@ -35,6 +65,13 @@ class BaseController
         exit;
     }
 
+    /**
+     * Registra una excepción y redirige con un mensaje apropiado para el usuario.
+     *
+     * @param string $route Ruta a la que se redirige después del fallo.
+     * @param \Throwable $error Error de validación o persistencia que se registrará.
+     * @return never Delega la redirección y termina la ejecución.
+     */
     protected function redirectError(string $route, \Throwable $error): void
     {
         error_log((string)$error);
@@ -42,51 +79,37 @@ class BaseController
         if ($error instanceof \InvalidArgumentException) {
             $message = $error->getMessage();
         } elseif ($error instanceof \mysqli_sql_exception && $error->getCode() === 1451) {
-            $message = 'Hay respuestas registradas que utilizan estas opciones. Debes conservarlas.';
+            $message = 'Hay registros relacionados que impiden completar la operación.';
         }
         $this->redirectMessage($route, $message, true);
     }
 
-    protected function evaluationData(string $test): array
-    {
-        $model = new \App\Models\EvaluacionModel();
-        $token = bin2hex(random_bytes(16));
-        $_SESSION['formularios_evaluacion'][$token] = ['test' => $test, 'catalogo' => $model->catalogHash($test)];
-        return [
-            'personas' => $model->getPersonas(), 'perfiles' => $model->getPerfiles(), 'token' => $token,
-            'anteriores' => $_SESSION['evaluacion_anterior'][$test] ?? []
-        ];
-    }
-
-    protected function submitEvaluation(string $test, string $route): void
-    {
-        try {
-            $token = $this->postString('evaluacion_token', 'formulario');
-            $form = $_SESSION['formularios_evaluacion'][$token] ?? null;
-            if (!$form || $form['test'] !== $test || !preg_match('/^[a-f0-9]{32}$/', $token)) {
-                throw new \InvalidArgumentException('El formulario expiró. Recarga la evaluación antes de enviarla.');
-            }
-            $responses = $_POST['respuestas'] ?? null;
-            if (!is_array($responses)) {
-                throw new \InvalidArgumentException('Responde el cuestionario antes de enviarlo.');
-            }
-            $id = (new \App\Models\EvaluacionModel())->guardar(
-                $test, $this->postString('id_persona', 'persona'), $this->postString('id_perfil', 'perfil'),
-                $responses, $token, $form['catalogo']
-            );
-            unset($_SESSION['evaluacion_anterior'][$test]);
-            $this->redirectMessage($route, 'Evaluación guardada correctamente. Aplicación ' . $id . '.');
-        } catch (\Throwable $error) {
-            $_SESSION['evaluacion_anterior'][$test] = array_intersect_key($_POST, array_flip(['id_persona', 'id_perfil', 'respuestas']));
-            $this->redirectError($route, $error);
-        }
-    }
-
-    public function __construct()
+    /**
+     * Inicia la sesión si hace falta y ejecuta la inicialización del módulo.
+     *
+     * @return void Inicializa esta instancia; no admite parámetros.
+     * @throws \Throwable Si initialize() no puede preparar sus dependencias.
+     */
+    final public function __construct()
     {
         $this->startSession();
+        $this->initialize();
     }
 
+    /**
+     * Permite a los módulos preparar sus dependencias después de abrir la sesión.
+     *
+     * @return void El comportamiento predeterminado no realiza operaciones.
+     */
+    protected function initialize(): void
+    {
+    }
+
+    /**
+     * Abre una sesión PHP únicamente cuando no hay una sesión iniciada.
+     *
+     * @return void Conserva la sesión existente y sus datos.
+     */
     private function startSession()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -94,6 +117,15 @@ class BaseController
         }
     }
 
+    /**
+     * Incluye una vista compartida y expone las claves de data como variables locales.
+     *
+     * La salida HTML se escribe directamente; si falta la vista imprime un mensaje.
+     *
+     * @param string $view Nombre de la vista en app/Views, sin extensión.
+     * @param array<string, mixed> $data Variables que recibirá la plantilla.
+     * @return null No devuelve el HTML generado.
+     */
     protected function render(string $view, array $data = [])
     {
         extract($data); // Convierte los elementos del array en variables
@@ -105,10 +137,14 @@ class BaseController
         include $file;
     }
     /**
-     * Renderiza una vista.
-     * Detecta automáticamente si es del core (App/Views) o de un módulo (Modules/NombreModulo/Views).
-     * @param string $view Nombre del archivo de vista (sin extensión, ej. 'index').
-     * @param array $data Datos a pasar a la vista.
+     * Resuelve e incluye una vista según el namespace del controlador concreto.
+     *
+     * La salida HTML se escribe directamente. Las claves de data se extraen en el ámbito de la vista.
+     *
+     * @param string $view Nombre de la vista, sin extensión PHP.
+     * @param array<string, mixed> $data Variables de entrada para la plantilla.
+     * @return null No devuelve el contenido renderizado.
+     * @throws \Exception Si el namespace no permite resolver el módulo o la vista no existe.
      */
     public function renderModule($view, $data = [])
     {

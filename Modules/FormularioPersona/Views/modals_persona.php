@@ -1,3 +1,4 @@
+<?php /** @var array $perfiles */ ?>
 <!-- Modal para Nueva Persona -->
 <div class="modal modal-lg fade" id="newModalUser" tabindex="-1" role="dialog" aria-labelledby="newModalUserLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -52,10 +53,12 @@
                     <!-- Form Row-->
                     <div class="row gx-3">
                         <div class="mb-3">
-                            <label for="new-perfil" class="small mb-1">Perfil Profesional</label>
-                            <input type="text" class="form-control" id="new-perfil" name="perfil" required
-                                placeholder="Ingresa el perfil profesional"
-                                title="Ingrese los datos necesarios">
+                            <?php
+                            $selectorId = 'new-perfil';
+                            $perfilSeleccionado = '';
+                            $incluirInactivos = false;
+                            include __DIR__ . '/selectorPerfil.php';
+                            ?>
                         </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between">
@@ -122,10 +125,13 @@
                     <!-- Form Row-->
                     <div class="row gx-3">
                         <div class="mb-3">
-                            <label for="usr-perfil" class="small mb-1">Perfil Profesional</label>
-                            <input type="text" class="form-control" id="usr-perfil" name="perfil" required
-                                placeholder="Ingresa el perfil profesional"
-                                title="Ingrese los datos necesarios">
+                            <?php
+                            $selectorId = 'usr-perfil';
+                            $perfilSeleccionado = '';
+                            $incluirInactivos = true;
+                            include __DIR__ . '/selectorPerfil.php';
+                            ?>
+                            <p class="form-text">Puedes conservar un perfil inactivo ya asignado; para cambiarlo selecciona uno activo.</p>
                         </div>
                     </div>
                     <div class="modal-footer d-flex justify-content-between">

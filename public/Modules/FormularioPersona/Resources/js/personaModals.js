@@ -2,7 +2,7 @@ window.addEventListener('DOMContentLoaded', function (event) {
     // Simple-DataTables
     // https://github.com/fiduswriter/Simple-DataTables/wiki
     const datatablesSimple = document.getElementById('datatablesSimple');
-    if (datatablesSimple) {
+    if (datatablesSimple && typeof simpleDatatables !== 'undefined') {
         new simpleDatatables.DataTable(datatablesSimple);
     }
 });
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('usr-curp').value = usuario.curp || '';
         document.getElementById('usr-rfc').value = usuario.rfc || '';
         document.getElementById('usr-nivel').value = usuario.nivel_academico || '';
-        document.getElementById('usr-perfil').value = usuario.perfil_profesional || '';
+        document.getElementById('usr-perfil').value = usuario.id_perfil || '';
     });
 
     deleteModalUser.addEventListener('show.bs.modal', function (event) {
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const name = button.getAttribute('data-user-name');
         // Actualiza el contenido del modal
         document.getElementById('deleteUserId').value = id;
-        document.getElementById("body-msg").innerHTML = `<p>¿Estás seguro de que deseas eliminar esta persona (<strong>${name}</strong>)?</p>`;
+        document.getElementById('body-msg').textContent = `¿Estás seguro de que deseas eliminar esta persona (${name})?`;
     });
 
 });

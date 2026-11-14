@@ -5,6 +5,7 @@ namespace App\Router;
 use Modules\FormularioKostick\Controllers\KostickTest;
 use Modules\FormularioZavick\Controllers\ZavickTest;
 use Modules\FormularioPersona\Controllers\Persona;
+use Modules\PerfilProfesional\Controllers\PerfilProfesional;
 
 class Rutes
 {
@@ -14,6 +15,7 @@ class Rutes
             'GET' => [
                 '/'                   => [Persona::class, 'index'],
                 '/nueva-persona'      => [Persona::class, 'viewNewPersona'],
+                '/perfiles-profesionales' => [PerfilProfesional::class, 'index'],
                 '/test-kostick'       => [KostickTest::class, 'index'],
                 '/update-kostick'     => [KostickTest::class, 'viewEditTest'],
                 '/test-zavic'         => [ZavickTest::class, 'index'],
@@ -21,6 +23,8 @@ class Rutes
 
             ],
             'POST' => [
+                '/crear-perfil-profesional' => [PerfilProfesional::class, 'create'],
+                '/actualizar-perfil-profesional' => [PerfilProfesional::class, 'update'],
                 '/guardar-evaluacion-kostick' => [KostickTest::class, 'guardarEvaluacion'],
                 '/guardar-evaluacion-zavick' => [ZavickTest::class, 'guardarEvaluacion'],
                 '/create-user'      => [Persona::class, 'create'],

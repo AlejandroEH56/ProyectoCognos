@@ -2,19 +2,33 @@
 
 namespace Modules\FormularioZavick\Models;
 
-use App\Models\CuestionarioModel;
+use Modules\Evaluaciones\Models\CuestionarioModel;
 
+/**
+ * Persistencia de encabezados de pregunta del cuestionario Zavick.
+ */
 class PreguntaModel extends CuestionarioModel
 {
+    /**
+     * @var string Tabla de encabezados de pregunta.
+     */
     protected string $table = 'pregunta';
+    /**
+     * @var string Identificador único de una pregunta.
+     */
     protected string $primaryKey = 'id_pregunta';
+    /**
+     * @var list<string> Campos permitidos para guardar encabezados de pregunta.
+     */
     protected array $fillable = ['id_pregunta', 'pregunta', 'tipo_respuesta', 'id_test'];
 
 
     /**
-     * Crea una pregunta
-     * @param array $detPregunta Datos de la Pregunta/Respuesta
-     * @return bool true si se insertan los datos correctamente, false en caso contrario.
+     * Inserta un encabezado con el test previamente asignado por el llamador.
+     *
+     * @param array{id_pregunta: string, pregunta: string, tipo_respuesta: int, id_test: string} $dataPregunta Datos completos del encabezado.
+     * @return bool True si se insertó una fila; false si no se insertaron filas.
+     * @throws \Exception Si falla la persistencia.
      */
     public function createPregunta(array $dataPregunta): bool
     {
@@ -29,8 +43,11 @@ class PreguntaModel extends CuestionarioModel
     }
 
     /**
-     * Devuelve el ID del test (Zavick)
-     * @return array
+     * Resuelve el test registrado con el nombre Zavick.
+     *
+     * @return array{ID: string} Identificador del test bajo la clave ID.
+     * @throws \InvalidArgumentException Si no está registrado el test.
+     * @throws \Exception Si falla la lectura.
      */
     public function getIDTest()
     {
@@ -39,21 +56,22 @@ class PreguntaModel extends CuestionarioModel
 
 
     /**
-     * Devuelve el total de preguntas
-     * @return array|array{total: int|bool|null}
+     * Cuenta todos los encabezados de pregunta, de cualquier test.
+     *
+     * @return array{total: int} Total de registros de la tabla pregunta.
+     * @throws \Exception Si falla el conteo.
      */
     public function getPreguntaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM pregunta");
-        $count = $result ? $result->fetch_assoc() : ['total' => 0];
-
-        return $count;
+        return ['total' => $this->count()];
     }
 
     /**
-     * Elimina una pregunta 
-     * @param string $id Id_Pregunta
-     * @return bool true si se elimina, false en caso contrario
+     * Elimina físicamente un encabezado por su identificador.
+     *
+     * @param string $id Identificador de la pregunta a eliminar.
+     * @return bool True si eliminó una fila; false si no existe el ID.
+     * @throws \Exception Si falla la baja o existen registros relacionados que la impiden.
      */
     public function deletePregunta(string $id): bool
     {

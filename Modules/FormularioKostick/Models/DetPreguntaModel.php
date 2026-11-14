@@ -2,17 +2,31 @@
 
 namespace Modules\FormularioKostick\Models;
 
-use App\Models\CuestionarioModel;
+use Modules\Evaluaciones\Models\CuestionarioModel;
 
+/**
+ * Opciones y operaciones atómicas sobre pares del cuestionario Kostick.
+ */
 class DetPreguntaModel extends CuestionarioModel
 {
+    /**
+     * @var string Tabla que almacena las opciones de las preguntas.
+     */
     protected string $table = 'det_pregunta';
+    /**
+     * @var string Identificador único de una opción.
+     */
     protected string $primaryKey = 'id_detpregunta';
+    /**
+     * @var list<string> Columnas permitidas para crear o editar opciones.
+     */
     protected array $fillable = ['id_detpregunta', 'respuesta', 'id_pregunta', 'valor'];
 
     /**
-     * Devuelve las respuestas del Test 2 (Kostick)
-     * @return array
+     * Consulta las opciones de Kostick en el orden que define sus pares.
+     *
+     * @return list<array{id_pregunta: string, pregunta: string|null, id_test: string, id_detpregunta: string, respuesta: string|null, valor: int|null}> Opciones existentes, sin filas contenedoras vacías.
+     * @throws \Exception Si falla la lectura.
      */
     public function getEvalTest2(): array
     {
@@ -20,9 +34,11 @@ class DetPreguntaModel extends CuestionarioModel
     }
 
     /**
-     * Crea una pregunta
-     * @param array $dataPregunta Datos de la Pregunta/Respuesta
-     * @return bool true si se insertan los datos correctamente
+     * Inserta una opción con el identificador y la pregunta proporcionados.
+     *
+     * @param array{id_detpregunta: string, respuesta: string, id_pregunta: string, valor: int} $dataPregunta Datos completos de la opción.
+     * @return bool True si se insertó una fila; false si no se insertaron filas.
+     * @throws \Exception Si falla la persistencia.
      */
     public function createDetPregunta(array $dataPregunta): bool
     {
@@ -38,10 +54,12 @@ class DetPreguntaModel extends CuestionarioModel
     }
 
     /**
-     * Actualiza los detalles de una pregunta
-     * @param string $id Id_detPregunta
-     * @param array $dataPregunta
-     * @return int
+     * Actualiza la descripción y el valor de una opción por su identificador.
+     *
+     * @param string $id ID de la opción que se desea actualizar.
+     * @param array{respuesta: string, valor: int} $dataPregunta Descripción y puntuación nuevas.
+     * @return int Filas modificadas; cero si no existe el ID o los valores ya eran iguales.
+     * @throws \Exception Si falla la sentencia SQL.
      */
     public function updateDetPregunta(string $id, array $dataPregunta): int
     {
@@ -51,9 +69,11 @@ class DetPreguntaModel extends CuestionarioModel
     }
 
     /**
-     * Elimina una pregunta
-     * @param string $id Id_detPregunta
-     * @return bool
+     * Elimina físicamente una opción por su identificador.
+     *
+     * @param string $id ID de la opción que se eliminará.
+     * @return bool True si eliminó una fila; false si no encontró el ID.
+     * @throws \Exception Si falla la escritura, incluidas relaciones con respuestas guardadas.
      */
     public function deleteDetPregunta(string $id): bool
     {
@@ -62,31 +82,40 @@ class DetPreguntaModel extends CuestionarioModel
 
 
     /**
-     * Devuelve el total de preguntas (creacion de preguntas)
-     * @return array|array{total: int|bool|null}
+     * Cuenta todas las opciones de la tabla, de cualquier test.
+     *
+     * @return array{total: int} Total de filas de det_pregunta.
+     * @throws \Exception Si falla el conteo.
      */
     public function getRespuestaCount(): array
     {
-        $result = $this->db->query("SELECT COUNT(*) AS total FROM det_pregunta");
-        $count = $result ? $result->fetch_assoc() : ['total' => 0];
-
-        return $count;
+        return ['total' => $this->count()];
     }
 
     /**
-     * Devuelve el id_pregunta del test kostick (creacion de preguntas)
-     * @return array
+     * Obtiene la primera pregunta contenedora del test Kostick.
+     *
+     * @return array{ID: string|null} ID de la pregunta, o null si todavía no existe.
+     * @throws \Exception Si falla la consulta.
      */
     public function getIDPreguntaKostick(): array
     {
-        $rows = $this->queryPrepared(
+        $row = $this->queryOne(
             'SELECT p.id_pregunta AS ID FROM pregunta p JOIN test t ON t.id_test = p.id_test
              WHERE t.id_test = (SELECT id_test FROM test WHERE nombre = ? ORDER BY id_test LIMIT 1)
              ORDER BY p.id_pregunta LIMIT 1', ['Kostick']
         );
-        return $rows[0] ?? ['ID' => null];
+        return $row ?? ['ID' => null];
     }
 
+    /**
+     * Crea dos opciones y, si hace falta, la pregunta contenedora de Kostick.
+     *
+     * @param list<array{respuesta: string, valor: int}> $opciones Exactamente dos opciones ya validadas por el controlador.
+     * @return void Confirma el par completo dentro de una transacción.
+     * @throws \InvalidArgumentException Si no se reciben dos opciones o el test no está registrado.
+     * @throws \Exception Si falla la creación o la generación de IDs; revierte el par.
+     */
     public function createPair(array $opciones): void
     {
         $this->transaction(function () use ($opciones) {
@@ -115,6 +144,16 @@ class DetPreguntaModel extends CuestionarioModel
         });
     }
 
+    /**
+     * Bloquea el test y comprueba que los IDs formen un par vigente.
+     *
+     * El llamador debe mantener una transacción activa durante la operación del par.
+     *
+     * @param list<string> $ids Dos identificadores distintos de opciones de la misma pareja.
+     * @return void Finaliza cuando el par es válido.
+     * @throws \InvalidArgumentException Si los IDs no corresponden a un par vigente.
+     * @throws \Exception Si falla la consulta o el bloqueo.
+     */
     private function lockPair(array $ids): void
     {
         $this->getTest('Kostick', true);
@@ -129,6 +168,15 @@ class DetPreguntaModel extends CuestionarioModel
         throw new \InvalidArgumentException('Las opciones no corresponden a un par vigente de Kostick.');
     }
 
+    /**
+     * Actualiza las dos opciones de un par como una sola operación atómica.
+     *
+     * @param list<string> $ids Dos IDs que corresponden al mismo par vigente.
+     * @param list<array{respuesta: string, valor: int}> $opciones Dos opciones validadas, en el orden de ids.
+     * @return void Confirma ambas escrituras, incluidos guardados sin cambios.
+     * @throws \InvalidArgumentException Si los IDs no forman un par válido.
+     * @throws \Exception Si falla una escritura; revierte el conjunto.
+     */
     public function updatePair(array $ids, array $opciones): void
     {
         $this->transaction(function () use ($ids, $opciones) {
@@ -139,6 +187,14 @@ class DetPreguntaModel extends CuestionarioModel
         });
     }
 
+    /**
+     * Elimina las dos opciones de una pareja dentro de una transacción.
+     *
+     * @param list<string> $ids Dos IDs distintos del mismo par vigente.
+     * @return void Confirma la eliminación completa del par.
+     * @throws \InvalidArgumentException Si los IDs no corresponden a un par.
+     * @throws \Exception Si falla una baja o una clave foránea impide eliminarla; revierte el conjunto.
+     */
     public function deletePair(array $ids): void
     {
         $this->transaction(function () use ($ids) {

@@ -6,7 +6,6 @@
  * @var string $mensaje
  * @var object $rendered
  * @var array $personas
- * @var array $perfiles
  * @var array $anteriores
  * @var string $token
  */
@@ -53,7 +52,7 @@
                             <?php unset($_SESSION['error']);
                             endif; ?>
                             <form id="evaltest2" method="POST" action="/guardar-evaluacion-kostick">
-                                <?php include __DIR__ . '/../../../app/Views/evaluacionContexto.php'; ?>
+                                <?php include __DIR__ . '/../../Evaluaciones/Views/evaluacionContexto.php'; ?>
                                 <!-- Grupo de preguntas -->
                                 <section class="mb-4">
                                     <?= $rendered->formView(); ?>
